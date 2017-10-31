@@ -4,10 +4,13 @@
 * Центр: (250, 250)
 
 * 30 прямоугольников
-![cloud30](/Pictures/cloud30.bmp)
+
+![cloud30](/TagsCloudVisualization/Pictures/cloud30.bmp)
 
 * 50 прямоугольников
-![cloud50](/Pictures/cloud50.bmp)
+
+![cloud50](/TagsCloudVisualization/Pictures/cloud50.bmp)
 
 * 70 прямоугольников
-![cloud70](/Pictures/cloud70.bmp)
+
+![cloud70](/TagsCloudVisualization/Pictures/cloud70.bmp)
