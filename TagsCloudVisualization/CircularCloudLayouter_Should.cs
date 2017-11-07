@@ -14,11 +14,13 @@ namespace TagsCloudVisualization
     {
         private readonly Point center = new Point(500, 500);
         private CircularCloudLayouter cloudLayouter;
+        private List<Rectangle> rectangles;
 
         [SetUp]
         public void SetUp()
         {
             cloudLayouter = new CircularCloudLayouter(center);
+            rectangles = null;
         }
 
         [Test]
@@ -29,18 +31,9 @@ namespace TagsCloudVisualization
         }
 
         [Test]
-        public void Center_ShouldBeCentralPointOfField()
-        {
-            var fieldCenter = new Point(
-                cloudLayouter.FieldSize.Width / 2, 
-                cloudLayouter.FieldSize.Height / 2);
-            cloudLayouter.Center.Should().Be(fieldCenter);
-        }
-
-        [Test]
         public void PutNextRectangle_ShouldThrowOnRectanglesBiggerThanField()
         {
-            var size = new Size(cloudLayouter.FieldSize.Width + 1, cloudLayouter.FieldSize.Height + 1);
+            var size = new Size(center.X * 2 + 1, center.Y * 2 + 1);
             Action act = () => cloudLayouter.PutNextRectangle(size);
             act.ShouldThrow<ArgumentException>();
         }
@@ -68,16 +61,11 @@ namespace TagsCloudVisualization
         [TestCase(50, 50, 20)]
         [TestCase(50, 50, 50)]
         [TestCase(50, 50, 70)]
-        public void PutNextRectangle_RectanglesShouldNotIntersect(int maxWidth, int maxHeight, int rectanglesCount)
+        public void PutNextRectangle_RectanglesShouldNotIntersect(
+            int width, int height, int rectanglesCount)
         {
-            var sizes = GenerateRandomSizes(maxWidth, maxHeight, rectanglesCount);
-
-            var rectangles = new List<Rectangle>();
-            foreach (var size in sizes)
-            {
-                var rectangle = cloudLayouter.PutNextRectangle(size);
-                rectangles.Add(rectangle);
-            }
+            var sizes = Enumerable.Repeat(new Size(width, height), rectanglesCount);
+            rectangles = sizes.Select(s => cloudLayouter.PutNextRectangle(s)).ToList();
 
             foreach (var rectangle in rectangles)
             {
@@ -88,29 +76,18 @@ namespace TagsCloudVisualization
         [TearDown]
         public void TearDown()
         {
-            if (TestContext.CurrentContext.Result.Outcome == ResultState.Failure)
-            {
-                var bmp = cloudLayouter.DrawBitmap();
-                var outputFilename = Path.Combine(
-                    TestContext.CurrentContext.TestDirectory,
-                    TestContext.CurrentContext.Test.Name + "_err.bmp");
+            if (TestContext.CurrentContext.Result.Outcome != ResultState.Failure 
+                || rectangles == null) 
+                return;
 
-                bmp.Save(outputFilename);
-                Console.WriteLine($"Tag cloud visualization saved to file {outputFilename}");
-            }
-        }
+            var fieldSize = new Size(center.X * 2, center.Y * 2);
+            var bitmap = BitmapDrawer.DrawRectangles(fieldSize, Color.Red, rectangles);
+            var outputFilename = Path.Combine(
+                TestContext.CurrentContext.TestDirectory,
+                TestContext.CurrentContext.Test.Name + "_err.bmp");
 
-        private static List<Size> GenerateRandomSizes(int maxWidth, int maxHeight, int count)
-        {
-            var result = new List<Size>();
-
-            var rnd = new Random();
-            for (int i = 0; i < count; i++)
-            {
-                result.Add(new Size(rnd.Next(1, maxWidth + 1), rnd.Next(1, maxHeight + 1)));
-            }
-
-            return result;
+            bitmap.Save(outputFilename);
+            Console.WriteLine($"Tag cloud visualization saved to file {outputFilename}");
         }
     }
 }

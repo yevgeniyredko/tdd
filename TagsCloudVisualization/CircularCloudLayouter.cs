@@ -8,72 +8,76 @@ namespace TagsCloudVisualization
 {
     public class CircularCloudLayouter
     {
-        public readonly Point Center;
-        public Size FieldSize => new Size(Center.X * 2, Center.Y * 2);
-        public readonly List<Rectangle> Rectangles;
+        private readonly Point center;
+        private Size FieldSize => new Size(center.X * 2, center.Y * 2);
+        private readonly List<Rectangle> rectangles;
+        private readonly IEnumerator<Point> spiralEnumerator;
 
         public CircularCloudLayouter(Point center)
         {
             if (center.X < 0 || center.Y < 0)
-                throw new ArgumentException("Coordinate should be positive");
+                throw new ArgumentException(nameof(center) + " coordinates must " +
+                                            $"be nonnegative, but were {center}");
 
-            this.Center = center;
-            this.Rectangles = new List<Rectangle>();
+            this.center = center;
+            this.rectangles = new List<Rectangle>();
+            this.spiralEnumerator = CalculatePointsOnSpiral(center).GetEnumerator();
         }
 
         public Rectangle PutNextRectangle(Size rectangleSize)
         {
             if (rectangleSize.Width > FieldSize.Width || rectangleSize.Height > FieldSize.Height)
-                throw new ArgumentException("Rectangle should be smaller than field");
+                throw new ArgumentException(nameof(rectangleSize) + " must be " +
+                                            $"smaller than field size {FieldSize}, " +
+                                            $"but was {rectangleSize}");
 
-            var rectangle = GetSpiralPoints(Center)
-                .Select(p => CreateRectangleWithCenter(p, rectangleSize))
-                .First(rect => !Rectangles.Any(r => r.IntersectsWith(rect)));
-            Rectangles.Add(rectangle);
-
-            return rectangle;
-        }
-
-        public Bitmap DrawBitmap()
-        {
-            var bmp = new Bitmap(FieldSize.Width, FieldSize.Height, PixelFormat.Format24bppRgb);
-
-            using (var graphics = Graphics.FromImage(bmp))
-            using (var brush = new SolidBrush(Color.Yellow))
+            while (spiralEnumerator.MoveNext())
             {
-                foreach (var rectangle in Rectangles)
-                {
-                    graphics.FillRectangle(brush, rectangle);
-                }
+                var rectangle = CreateRectangle(spiralEnumerator.Current, rectangleSize);
+
+                if (rectangles.Any(r => r.IntersectsWith(rectangle)) 
+                    || rectangle.Left < 0 || rectangle.Top < 0
+                    || rectangle.Right > FieldSize.Width || rectangle.Bottom > FieldSize.Height)
+                    continue;
+
+                rectangles.Add(rectangle);
+                return rectangle;
             }
 
-            return bmp;
+            throw new InvalidOperationException("Rectangle can't be put on field");
         }
 
-        private static IEnumerable<Point> GetSpiralPoints(
+        private static IEnumerable<Point> CalculatePointsOnSpiral(
             Point center, 
             double coefficient = 0.5, 
             double angleDelta = 0.2)
         {
             var angle = 0.0;
+            Point? previous = null;
             while (true)
             {
                 var length = angle * coefficient;
+                angle += angleDelta;
 
                 var x = (int) (length * Math.Cos(angle)) + center.X;
                 var y = (int) (length * Math.Sin(angle)) + center.Y;
 
                 if (x < 0 || y < 0 || x > center.X * 2 || y > center.Y * 2)
                     yield break;
+                if (previous != null && x == previous.Value.X && y == previous.Value.Y)
+                    continue;
 
-                yield return new Point(x, y);
-
-                angle += angleDelta;
+                var result = new Point(x, y);
+                yield return result;
+                previous = result;
             }
         }
 
-        private static Rectangle CreateRectangleWithCenter(Point center, Size size)
+        private static Rectangle CreateRectangle(Point center, Size size)
         {
+            if (size.Width <= 0 || size.Height <= 0)
+                throw new ArgumentException($"{nameof(size)} must be positive, but was {size}");
+
             var location = new Point(center.X - size.Width / 2, center.Y - size.Height / 2);
             return new Rectangle(location, size);
         }
