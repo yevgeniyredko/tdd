@@ -23,7 +23,6 @@ namespace TagsCloudVisualization
 
             this.center = center;
             this.rectangles = new List<Rectangle>();
-            this.pointsOnSpiral = CalculatePointsOnSpiral(center).ToArray();
         }
 
         public Rectangle PutNextRectangle(Size rectangleSize)
