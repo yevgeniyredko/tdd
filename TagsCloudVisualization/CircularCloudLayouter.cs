@@ -9,31 +9,32 @@ namespace TagsCloudVisualization
     public class CircularCloudLayouter
     {
         private readonly Point center;
-        private Size FieldSize => new Size(center.X * 2, center.Y * 2);
         private readonly List<Rectangle> rectangles;
-        private readonly IEnumerator<Point> spiralEnumerator;
+        private Point[] pointsOnSpiral;
+
+        private Size FieldSize => new Size(center.X * 2, center.Y * 2);
+        private Point[] PointsOnSpiral =>
+            pointsOnSpiral ?? (pointsOnSpiral = CalculatePointsOnSpiral(center).ToArray());
 
         public CircularCloudLayouter(Point center)
         {
             if (center.X < 0 || center.Y < 0)
-                throw new ArgumentException(nameof(center) + " coordinates must " +
-                                            $"be nonnegative, but were {center}");
+                throw new ArgumentException($"Coordinates must be nonnegative, but were {center}", nameof(center));
 
             this.center = center;
             this.rectangles = new List<Rectangle>();
-            this.spiralEnumerator = CalculatePointsOnSpiral(center).GetEnumerator();
+            this.pointsOnSpiral = CalculatePointsOnSpiral(center).ToArray();
         }
 
         public Rectangle PutNextRectangle(Size rectangleSize)
         {
             if (rectangleSize.Width > FieldSize.Width || rectangleSize.Height > FieldSize.Height)
-                throw new ArgumentException(nameof(rectangleSize) + " must be " +
-                                            $"smaller than field size {FieldSize}, " +
-                                            $"but was {rectangleSize}");
+                throw new ArgumentException($"Rectangle size must be smaller than field size {FieldSize}, " +
+                                            $"but was {rectangleSize}", nameof(rectangleSize));
 
-            while (spiralEnumerator.MoveNext())
+            foreach (var point in PointsOnSpiral)
             {
-                var rectangle = CreateRectangle(spiralEnumerator.Current, rectangleSize);
+                var rectangle = CreateRectangle(point, rectangleSize);
 
                 if (rectangles.Any(r => r.IntersectsWith(rectangle)) 
                     || rectangle.Left < 0 || rectangle.Top < 0
@@ -76,7 +77,7 @@ namespace TagsCloudVisualization
         private static Rectangle CreateRectangle(Point center, Size size)
         {
             if (size.Width <= 0 || size.Height <= 0)
-                throw new ArgumentException($"{nameof(size)} must be positive, but was {size}");
+                throw new ArgumentException($"Size must be positive, but was {size}", nameof(size));
 
             var location = new Point(center.X - size.Width / 2, center.Y - size.Height / 2);
             return new Rectangle(location, size);

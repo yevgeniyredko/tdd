@@ -39,6 +39,13 @@ namespace TagsCloudVisualization
         }
 
         [Test]
+        public void PutNextRectangle_ShouldThrowOnRectanglesWithNegativeSize()
+        {
+            Action act = () => cloudLayouter.PutNextRectangle(new Size(-1, -1));
+            act.ShouldThrow<ArgumentException>();
+        }
+
+        [Test]
         public void PutNextRectangle_ShouldPutFirstRectangleInCenter()
         {
             var rect = cloudLayouter.PutNextRectangle(new Size(10, 10));
@@ -46,11 +53,10 @@ namespace TagsCloudVisualization
             rect.Contains(center).Should().BeTrue();
         }
 
-        [TestCase(10, 10)]
-        [TestCase(11, 11)]
-        public void PutNextRectangle_RectangleShouldHaveCorrectSize(int width, int height)
+        [Test]
+        public void PutNextRectangle_RectangleShouldHaveCorrectSize()
         {
-            var size = new Size(width, height);
+            var size = new Size(11, 11);
             var rect = cloudLayouter.PutNextRectangle(size);
 
             rect.Size.ShouldBeEquivalentTo(size);
@@ -58,9 +64,6 @@ namespace TagsCloudVisualization
 
         [TestCase(50, 50, 2)]
         [TestCase(50, 50, 10)]
-        [TestCase(50, 50, 20)]
-        [TestCase(50, 50, 50)]
-        [TestCase(50, 50, 70)]
         public void PutNextRectangle_RectanglesShouldNotIntersect(
             int width, int height, int rectanglesCount)
         {
